@@ -11,6 +11,7 @@ const QRKeyExchange = () => {
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const myQrRef = useRef(null);
   const responseQrRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const storedKey = localStorage.getItem('myKeyPair');
@@ -95,8 +96,10 @@ const QRKeyExchange = () => {
     console.error(err);
   };
 
+  const [scannerActive, setScannerActive] = useState(false);
+
   useEffect(() => {
-    if (!myKeyPair) return;
+    if (!myKeyPair || !scannerActive) return;
 
     let html5QrCode;
     import('html5-qrcode').then(({ Html5Qrcode }) => {
@@ -116,7 +119,11 @@ const QRKeyExchange = () => {
         html5QrCode.stop().catch(handleError);
       }
     };
-  }, [myKeyPair]);
+  }, [myKeyPair, scannerActive]);
+
+  const toggleScanner = () => {
+    setScannerActive((prev) => !prev);
+  };
 
   const downloadQRCode = (ref, publicKey) => {
     if (!ref.current) return;
@@ -131,6 +138,50 @@ const QRKeyExchange = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        // Use a QR code library to decode the image
+        import('jsqr')
+          .then((jsQR) => {
+            const imageData = ctx.getImageData(
+              0,
+              0,
+              canvas.width,
+              canvas.height
+            );
+            const code = jsQR.default(
+              imageData.data,
+              imageData.width,
+              imageData.height
+            );
+
+            if (code) {
+              handleScan(code.data);
+            } else {
+              console.error('No QR code found in the image');
+            }
+          })
+          .catch((error) => {
+            console.error('Error loading jsQR:', error);
+          });
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
   };
 
   const deleteAllVerifiedKeys = () => {
@@ -163,7 +214,29 @@ const QRKeyExchange = () => {
         </div>
       )}
 
-      <div id="reader" className="my-4" />
+      <div className="my-4">
+        <button
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mr-2"
+          onClick={toggleScanner}
+        >
+          {scannerActive ? 'Stop Scanner' : 'Start Scanner'}
+        </button>
+
+        <button
+          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+          onClick={() => fileInputRef.current.click()}
+        >
+          Upload QR Image
+        </button>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileUpload}
+          accept="image/*"
+          className="hidden"
+        />
+      </div>
+      <div id="qr-reader" className="my-4" />
 
       {currentQR && (
         <div className="my-4">
