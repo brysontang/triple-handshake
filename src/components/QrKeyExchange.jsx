@@ -229,6 +229,7 @@ const QRKeyExchange = () => {
       {myKeyPair && (
         <div className="my-4">
           <h2>Your Public Key</h2>
+          <p className="text-sm text-gray-500">{myKeyPair.publicKey}</p>
           <div ref={myQrRef}>
             <QRCodeCanvas
               value={myKeyPair.publicKey}
