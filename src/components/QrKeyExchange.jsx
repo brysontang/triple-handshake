@@ -53,12 +53,18 @@ const QRKeyExchange = () => {
         const data = JSON.parse(decodedText);
 
         if (data?.signedKey && data?.publicKey) {
-          const verifiedKey = {
-            publicKey: data.publicKey,
-            signedKey: data.signedKey,
-          };
-          setVerifiedKeys((verified) => [...verified, verifiedKey]);
-          localStorage.setItem(`verified-${data.publicKey}`, data.signedKey);
+          // Check if this key already exists
+          const keyExists = verifiedKeys.some(
+            (key) => key.publicKey === data.publicKey
+          );
+          if (!keyExists) {
+            const verifiedKey = {
+              publicKey: data.publicKey,
+              signedKey: data.signedKey,
+            };
+            setVerifiedKeys((verified) => [...verified, verifiedKey]);
+            localStorage.setItem(`verified-${data.publicKey}`, data.signedKey);
+          }
 
           const theirPublicKey = naclUtil.decodeBase64(data.publicKey);
           const signature = nacl.sign.detached(
@@ -224,7 +230,15 @@ const QRKeyExchange = () => {
         <div className="my-4">
           <h2>Your Public Key</h2>
           <div ref={myQrRef}>
-            <QRCodeCanvas value={myKeyPair.publicKey} size={256} />
+            <QRCodeCanvas
+              value={myKeyPair.publicKey}
+              size={256}
+              style={{
+                padding: '10px',
+                background: 'white',
+                border: '2px solid white',
+              }}
+            />
           </div>
           <button
             className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -263,7 +277,15 @@ const QRKeyExchange = () => {
         <div className="my-4">
           <h2>Scan this QR code back</h2>
           <div ref={responseQrRef}>
-            <QRCodeCanvas value={currentQR} size={256} />
+            <QRCodeCanvas
+              value={currentQR}
+              size={256}
+              style={{
+                padding: '10px',
+                background: 'white',
+                border: '2px solid white',
+              }}
+            />
           </div>
           <button
             className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
