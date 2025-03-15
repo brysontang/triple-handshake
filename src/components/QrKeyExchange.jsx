@@ -37,20 +37,13 @@ const QRKeyExchange = () => {
 
   useEffect(() => {
     // Check URL for public_key parameter
+    console.log('Checking URL for public_key parameter');
     const urlParams = new URLSearchParams(window.location.search);
-    const publicKeyParam = urlParams.get('public_key');
+    console.log('URL parameters:', urlParams);
+    const publicKeyParam = urlParams.get('public_key')?.replace(/ /g, '+');
+    console.log('Public key parameter:', publicKeyParam);
 
-    if (publicKeyParam) {
-      // If public key is present, switch to scanner tab and process it
-      setActiveTab('scanner');
-      handleScan(
-        `https://triple-handshake.vercel.app?public_key=${publicKeyParam}`
-      );
-      // Clear the URL parameter without refreshing the page
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-
-    const storedKey = localStorage.getItem('myKeyPair');
+    let storedKey = localStorage.getItem('myKeyPair');
     if (storedKey) {
       setMyKeyPair(JSON.parse(storedKey));
     } else {
@@ -60,8 +53,11 @@ const QRKeyExchange = () => {
         secretKey: naclUtil.encodeBase64(newKeyPair.secretKey),
       };
       localStorage.setItem('myKeyPair', JSON.stringify(keyPair));
+      storedKey = keyPair;
       setMyKeyPair(keyPair);
     }
+
+    console.log('storedKey1:', storedKey);
 
     // Load verified keys from localStorage
     const storedVerifiedKeys = [];
@@ -81,6 +77,17 @@ const QRKeyExchange = () => {
     if (storedVerifiedKeys.length > 0) {
       setVerifiedKeys(storedVerifiedKeys);
     }
+
+    if (publicKeyParam) {
+      // If public key is present, switch to scanner tab and process it
+      setActiveTab('scanner');
+      const urlEncodedPublicKey = `https://triple-handshake.vercel.app?public_key=${encodeURIComponent(
+        publicKeyParam
+      )}`;
+      handleScan(urlEncodedPublicKey, JSON.parse(storedKey));
+      // Clear the URL parameter without refreshing the page
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, []);
 
   const showNotification = (message, type = 'success') => {
@@ -88,8 +95,10 @@ const QRKeyExchange = () => {
     setTimeout(() => setNotification(null), 3000);
   };
 
-  const handleScan = (message) => {
+  const handleScan = (message, storedKey) => {
+    console.log('Handling scan with message:', message);
     const decodedText = decodeURIComponent(message);
+    console.log('Decoded text:', decodedText);
     try {
       setScanAnimation(true);
       setTimeout(() => setScanAnimation(false), 1000);
@@ -100,23 +109,32 @@ const QRKeyExchange = () => {
           'https://triple-handshake.vercel.app?public_key='
         )
       ) {
+        console.log('Decoded text starts with:', decodedText);
         const publicKeyParam = decodedText.split('public_key=')[1];
+        console.log('Public key parameter:', publicKeyParam);
         if (publicKeyParam) {
+          console.log('Public key parameter found:', publicKeyParam);
           // Process the public key from the URL
           const theirPublicKey = naclUtil.decodeBase64(publicKeyParam);
+          console.log('Their public key:', theirPublicKey);
+          console.log('storedKey.secretKey:', storedKey.secretKey);
           const signature = nacl.sign.detached(
             theirPublicKey,
-            naclUtil.decodeBase64(myKeyPair.secretKey)
+            naclUtil.decodeBase64(storedKey.secretKey)
           );
+          console.log('Signature:', signature);
           const signedPayload = {
-            publicKey: myKeyPair.publicKey,
+            publicKey: storedKey.publicKey,
             signedKey: naclUtil.encodeBase64(signature),
           };
+          console.log('Signed payload:', signedPayload);
           const payload = JSON.stringify(signedPayload);
+          console.log('Payload:', payload);
           setCurrentQR(encodeURIComponent(payload));
           setActiveTab('response');
           showNotification('QR code with public key scanned successfully!');
           setScannerActive(false);
+          console.log('QR code with public key scanned successfully!');
           return;
         }
       }
