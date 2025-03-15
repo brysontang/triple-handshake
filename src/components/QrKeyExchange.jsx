@@ -93,6 +93,7 @@ const QRKeyExchange = () => {
         const payload = JSON.stringify(signedPayload);
         setCurrentQR(encodeURIComponent(payload));
       }
+      setScannerActive(false);
     } catch (error) {
       console.error('Error processing QR data:', error);
     }
