@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import nacl from 'tweetnacl';
-import dynamic from 'next/dynamic';
 import naclUtil from 'tweetnacl-util';
 
 import { QRCodeCanvas } from 'qrcode.react';
@@ -97,20 +96,27 @@ const QRKeyExchange = () => {
   };
 
   useEffect(() => {
-    if (!myKeyPair) return; // Don't initialize scanner until we have the keypair
+    if (!myKeyPair) return;
 
-    let scanner;
-    import('html5-qrcode').then(({ Html5QrcodeScanner }) => {
-      scanner = new Html5QrcodeScanner('reader', { fps: 10, qrbox: 250 });
-      scanner.render(handleScan, handleError);
+    let html5QrCode;
+    import('html5-qrcode').then(({ Html5Qrcode }) => {
+      html5QrCode = new Html5Qrcode('qr-reader');
+      html5QrCode
+        .start(
+          { facingMode: 'environment' }, // rear camera preferred
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          handleScan,
+          handleError
+        )
+        .catch(handleError);
     });
 
     return () => {
-      if (scanner) {
-        scanner.clear().catch(console.error);
+      if (html5QrCode) {
+        html5QrCode.stop().catch(handleError);
       }
     };
-  }, [myKeyPair]); // Add myKeyPair as a dependency
+  }, [myKeyPair]);
 
   const downloadQRCode = (ref, publicKey) => {
     if (!ref.current) return;
