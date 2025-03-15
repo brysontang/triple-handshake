@@ -126,18 +126,39 @@ const QRKeyExchange = () => {
   };
 
   const downloadQRCode = (ref, publicKey) => {
-    if (!ref.current) return;
-
     const canvas = ref.current.querySelector('canvas');
-    if (!canvas) return;
+    if (!canvas) {
+      console.error('Canvas element not found.');
+      return;
+    }
 
-    // Create a temporary link element
-    const link = document.createElement('a');
-    link.href = canvas.toDataURL('image/png');
-    link.download = `qr-${publicKey.substring(0, 16)}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const dataURL = canvas.toDataURL('image/png');
+    const fileName = `qr-${publicKey.substring(0, 16)}.png`;
+
+    // Check for iOS/Safari
+    if (
+      navigator.userAgent.match(/iPad|iPhone|iPod|Safari/) &&
+      !navigator.userAgent.includes('Chrome')
+    ) {
+      fetch(dataURL)
+        .then((res) => res.blob())
+        .then((blob) => {
+          const url = URL.createObjectURL(blob);
+          const newTab = window.open(url, '_blank');
+          if (!newTab) {
+            alert('Please allow popups for this website');
+          }
+        })
+        .catch((err) => console.error('Error opening image in new tab:', err));
+    } else {
+      // For other browsers
+      const link = document.createElement('a');
+      link.href = dataURL;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   const handleFileUpload = (event) => {
