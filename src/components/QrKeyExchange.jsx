@@ -80,6 +80,33 @@ const QRKeyExchange = () => {
       setScanAnimation(true);
       setTimeout(() => setScanAnimation(false), 1000);
 
+      // Check if the scanned QR is a URL with public_key parameter
+      if (
+        decodedText.startsWith(
+          'https://triple-handshake.vercel.app?public_key='
+        )
+      ) {
+        const publicKeyParam = decodedText.split('public_key=')[1];
+        if (publicKeyParam) {
+          // Process the public key from the URL
+          const theirPublicKey = naclUtil.decodeBase64(publicKeyParam);
+          const signature = nacl.sign.detached(
+            theirPublicKey,
+            naclUtil.decodeBase64(myKeyPair.secretKey)
+          );
+          const signedPayload = {
+            publicKey: myKeyPair.publicKey,
+            signedKey: naclUtil.encodeBase64(signature),
+          };
+          const payload = JSON.stringify(signedPayload);
+          setCurrentQR(encodeURIComponent(payload));
+          setActiveTab('response');
+          showNotification('QR code with public key scanned successfully!');
+          setScannerActive(false);
+          return;
+        }
+      }
+
       // Try to parse as JSON first
       try {
         const data = JSON.parse(decodedText);
@@ -318,7 +345,7 @@ const QRKeyExchange = () => {
       <div className="max-w-4xl mx-auto bg-black bg-opacity-30 backdrop-filter backdrop-blur-lg rounded-xl shadow-2xl overflow-hidden border border-gray-700">
         <div className="p-3 sm:p-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 mb-4 sm:mb-6">
-            Secure QR Key Exchange
+            Triple Handshake
           </h1>
 
           <Notification notification={notification} />

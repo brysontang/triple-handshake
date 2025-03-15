@@ -1,8 +1,17 @@
 import React from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 
-const MyKeyTab = ({ myKeyPair, myQrRef, downloadQRCode }) => {
+const MyKeyTab = ({
+  myKeyPair,
+  myQrRef,
+  downloadQRCode,
+  isMobile,
+  truncateKey,
+}) => {
   if (!myKeyPair) return null;
+
+  // Create a URL with the public key as a parameter
+  const qrValue = `https://triple-handshake.vercel.app?public_key=${myKeyPair.publicKey}`;
 
   return (
     <div className="animate-fadeIn">
@@ -12,7 +21,7 @@ const MyKeyTab = ({ myKeyPair, myQrRef, downloadQRCode }) => {
         </h2>
         <div className="bg-gray-900 p-3 rounded-lg mb-4 overflow-x-auto">
           <p className="text-sm font-mono text-gray-300 break-all">
-            {myKeyPair.publicKey}
+            {isMobile ? truncateKey(myKeyPair.publicKey) : myKeyPair.publicKey}
           </p>
         </div>
         <div className="flex justify-center mb-4">
@@ -21,7 +30,7 @@ const MyKeyTab = ({ myKeyPair, myQrRef, downloadQRCode }) => {
             className="bg-white p-4 rounded-lg shadow-lg transform transition-all hover:scale-105"
           >
             <QRCodeCanvas
-              value={myKeyPair.publicKey}
+              value={qrValue}
               size={256}
               level="H"
               imageSettings={{
