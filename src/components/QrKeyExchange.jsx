@@ -18,9 +18,22 @@ const QRKeyExchange = () => {
   const [scannerActive, setScannerActive] = useState(false);
   const [scanAnimation, setScanAnimation] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
   const myQrRef = useRef(null);
   const responseQrRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  // Check if device is mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const storedKey = localStorage.getItem('myKeyPair');
@@ -44,8 +57,6 @@ const QRKeyExchange = () => {
         const publicKey = key.replace('verified-', '');
         const signedKey = localStorage.getItem(key);
         const createdAt = localStorage.getItem(`${publicKey}-createdAt`);
-        console.log(key);
-        console.log(createdAt);
         storedVerifiedKeys.push({
           publicKey,
           signedKey,
@@ -147,10 +158,17 @@ const QRKeyExchange = () => {
     let html5QrCode;
     import('html5-qrcode').then(({ Html5Qrcode }) => {
       html5QrCode = new Html5Qrcode('qr-reader');
+
+      // Configure scanner based on device type
+      const qrboxSize = isMobile
+        ? { width: 200, height: 200 }
+        : { width: 250, height: 250 };
+      const fps = isMobile ? 5 : 10; // Lower FPS on mobile for better performance
+
       html5QrCode
         .start(
           { facingMode: 'environment' }, // rear camera preferred
-          { fps: 10, qrbox: { width: 250, height: 250 } },
+          { fps: fps, qrbox: qrboxSize },
           handleScan,
           handleError
         )
@@ -162,7 +180,7 @@ const QRKeyExchange = () => {
         html5QrCode.stop().catch(handleError);
       }
     };
-  }, [myKeyPair, scannerActive]);
+  }, [myKeyPair, scannerActive, isMobile]);
 
   const toggleScanner = () => {
     setScannerActive((prev) => !prev);
@@ -221,9 +239,25 @@ const QRKeyExchange = () => {
       img.onload = () => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
+
+        // Resize large images for better performance on mobile
+        let width = img.width;
+        let height = img.height;
+
+        if (isMobile && (width > 1000 || height > 1000)) {
+          const maxDimension = 1000;
+          if (width > height) {
+            height = (height / width) * maxDimension;
+            width = maxDimension;
+          } else {
+            width = (width / height) * maxDimension;
+            height = maxDimension;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
 
         // Use a QR code library to decode the image
         import('jsqr')
@@ -261,6 +295,7 @@ const QRKeyExchange = () => {
     // Remove all verified keys from localStorage
     verifiedKeys.forEach((key) => {
       localStorage.removeItem(`verified-${key.publicKey}`);
+      localStorage.removeItem(`${key.publicKey}-createdAt`);
     });
 
     // Clear the state
@@ -271,14 +306,18 @@ const QRKeyExchange = () => {
 
   const truncateKey = (key) => {
     if (!key) return '';
+    // Shorter truncation on mobile
+    if (isMobile) {
+      return `${key.substring(0, 6)}...${key.substring(key.length - 6)}`;
+    }
     return `${key.substring(0, 8)}...${key.substring(key.length - 8)}`;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 text-white p-6">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 text-white p-2 sm:p-6">
       <div className="max-w-4xl mx-auto bg-black bg-opacity-30 backdrop-filter backdrop-blur-lg rounded-xl shadow-2xl overflow-hidden border border-gray-700">
-        <div className="p-6">
-          <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 mb-6">
+        <div className="p-3 sm:p-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 mb-4 sm:mb-6">
             Secure QR Key Exchange
           </h1>
 
@@ -288,6 +327,7 @@ const QRKeyExchange = () => {
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             currentQR={currentQR}
+            isMobile={isMobile}
           />
 
           <div className="transition-all duration-300">
@@ -296,6 +336,8 @@ const QRKeyExchange = () => {
                 myKeyPair={myKeyPair}
                 myQrRef={myQrRef}
                 downloadQRCode={downloadQRCode}
+                isMobile={isMobile}
+                truncateKey={truncateKey}
               />
             )}
 
@@ -306,6 +348,7 @@ const QRKeyExchange = () => {
                 scanAnimation={scanAnimation}
                 fileInputRef={fileInputRef}
                 handleFileUpload={handleFileUpload}
+                isMobile={isMobile}
               />
             )}
 
@@ -314,6 +357,7 @@ const QRKeyExchange = () => {
                 currentQR={currentQR}
                 responseQrRef={responseQrRef}
                 downloadQRCode={downloadQRCode}
+                isMobile={isMobile}
               />
             )}
 
@@ -326,6 +370,8 @@ const QRKeyExchange = () => {
                 showNotification={showNotification}
                 setScannerActive={setScannerActive}
                 setActiveTab={setActiveTab}
+                isMobile={isMobile}
+                truncateKey={truncateKey}
               />
             )}
           </div>
