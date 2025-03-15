@@ -43,9 +43,13 @@ const QRKeyExchange = () => {
       if (key.startsWith('verified-')) {
         const publicKey = key.replace('verified-', '');
         const signedKey = localStorage.getItem(key);
+        const createdAt = localStorage.getItem(`${publicKey}-createdAt`);
+        console.log(key);
+        console.log(createdAt);
         storedVerifiedKeys.push({
           publicKey,
           signedKey,
+          createdAt,
         });
       }
     }
@@ -78,9 +82,18 @@ const QRKeyExchange = () => {
             const verifiedKey = {
               publicKey: data.publicKey,
               signedKey: data.signedKey,
+              createdAt: new Date().toISOString(),
             };
             setVerifiedKeys((verified) => [...verified, verifiedKey]);
-            localStorage.setItem(`verified-${data.publicKey}`, data.signedKey);
+            localStorage.setItem(
+              `verified-${data.publicKey}`,
+              JSON.stringify(data.signedKey)
+            );
+
+            localStorage.setItem(
+              `${data.publicKey}-createdAt`,
+              new Date().toISOString()
+            );
             showNotification('New key verified successfully!');
           } else {
             showNotification('Key already verified', 'info');

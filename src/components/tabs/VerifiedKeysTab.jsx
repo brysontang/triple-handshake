@@ -15,7 +15,6 @@ const VerifiedKeysTab = ({
         <h2 className="text-xl font-semibold mb-4 text-yellow-300">
           Verified Keys
         </h2>
-
         {verifiedKeys.length > 0 ? (
           <div className="mb-6">
             <ul className="space-y-3">
@@ -45,6 +44,9 @@ const VerifiedKeysTab = ({
                       </div>
                       <div className="truncate text-gray-400 text-xs">
                         Signed: {key.signedKey}
+                      </div>
+                      <div className="truncate text-gray-400 text-xs">
+                        Created: {new Date(key.createdAt).toLocaleString()}
                       </div>
                       <div className="text-xs text-gray-500">
                         Verified Key #{index + 1}
