@@ -36,6 +36,20 @@ const QRKeyExchange = () => {
   }, []);
 
   useEffect(() => {
+    // Check URL for public_key parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const publicKeyParam = urlParams.get('public_key');
+
+    if (publicKeyParam) {
+      // If public key is present, switch to scanner tab and process it
+      setActiveTab('scanner');
+      handleScan(
+        `https://triple-handshake.vercel.app?public_key=${publicKeyParam}`
+      );
+      // Clear the URL parameter without refreshing the page
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
     const storedKey = localStorage.getItem('myKeyPair');
     if (storedKey) {
       setMyKeyPair(JSON.parse(storedKey));
